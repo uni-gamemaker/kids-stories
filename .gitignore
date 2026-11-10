@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
+# Secrets: never commit
+.env
+.env.*
+!.env.example
+merger/.env
+merger/node_modules
+.vercel
