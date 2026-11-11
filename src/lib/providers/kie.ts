@@ -2,7 +2,7 @@
 import { ProviderError } from "../keys";
 import { fetchJson, type ProviderAdapter } from "./types";
 
-const BASE = "https://api.kie.ai/api/v1/jobs";
+const BASE = () => (process.env.KIE_API_BASE || "https://api.kie.ai") + "/api/v1/jobs"; // env override is for offline tests
 
 function fail(status: number, body: any): never {
   // kie.ai may return HTTP 200 with a non-200 "code" in the body.
@@ -12,7 +12,7 @@ function fail(status: number, body: any): never {
 
 export const kie: ProviderAdapter = {
   async createTask(key, model, input) {
-    const { status, body } = await fetchJson(`${BASE}/createTask`, {
+    const { status, body } = await fetchJson(`${BASE()}/createTask`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, input }),
@@ -22,7 +22,7 @@ export const kie: ProviderAdapter = {
   },
 
   async checkTask(key, id) {
-    const { status, body } = await fetchJson(`${BASE}/recordInfo?taskId=${encodeURIComponent(id)}`, {
+    const { status, body } = await fetchJson(`${BASE()}/recordInfo?taskId=${encodeURIComponent(id)}`, {
       headers: { Authorization: `Bearer ${key}` },
     });
     if (status !== 200 || Number(body?.code) !== 200) fail(status, body);

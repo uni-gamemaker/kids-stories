@@ -64,7 +64,7 @@ export async function getKeyPool(providers: ProviderId[]): Promise<ApiKeyRow[]> 
   const ph = providers.map(() => "?").join(",");
   const r = await db().execute({
     sql: `SELECT * FROM api_keys WHERE status != 'disabled' AND provider IN (${ph})
-          ORDER BY created_at ASC, id ASC`,
+          ORDER BY created_at ASC, rowid ASC`, // rowid = true insertion order (id alone is random)
     args: providers,
   });
   return r.rows.map((x) => x as unknown as ApiKeyRow);
@@ -72,7 +72,7 @@ export async function getKeyPool(providers: ProviderId[]): Promise<ApiKeyRow[]> 
 
 export async function listKeys(): Promise<ApiKeyRow[]> {
   await ensureSchema();
-  const r = await db().execute("SELECT * FROM api_keys ORDER BY created_at ASC, id ASC");
+  const r = await db().execute("SELECT * FROM api_keys ORDER BY created_at ASC, rowid ASC");
   return r.rows.map((x) => x as unknown as ApiKeyRow);
 }
 
@@ -117,4 +117,10 @@ export async function recordKeyUse(id: string, ok: boolean, error?: string) {
           last_used_at = ?, last_error = COALESCE(?, last_error) WHERE id = ?`,
     args: [ok ? 1 : 0, ok ? 0 : 1, new Date().toISOString(), ok ? null : (error ?? "error").slice(0, 300), id],
   });
+}
+
+export async function getKeyById(id: string): Promise<ApiKeyRow | null> {
+  await ensureSchema();
+  const r = await db().execute({ sql: "SELECT * FROM api_keys WHERE id = ?", args: [id] });
+  return (r.rows[0] as unknown as ApiKeyRow) ?? null;
 }

@@ -4,7 +4,7 @@
 import { ProviderError } from "../keys";
 import { fetchJson, type ProviderAdapter } from "./types";
 
-const BASE = "https://api.cometapi.com";
+const BASE_URL = () => process.env.COMETAPI_BASE || "https://api.cometapi.com";
 const VIDEO_PATH = () => process.env.COMETAPI_VIDEO_PATH || "/v1/video/generations";
 
 const auth = (k: string) => ({ Authorization: `Bearer ${k}`, "Content-Type": "application/json" });
@@ -12,7 +12,7 @@ const errOf = (status: number, b: any) => new ProviderError(status, String(b?.er
 
 export const cometapi: ProviderAdapter = {
   async createImageSync(key, model, input) {
-    const { status, body } = await fetchJson(`${BASE}/v1/images/generations`, {
+    const { status, body } = await fetchJson(`${BASE_URL()}/v1/images/generations`, {
       method: "POST",
       headers: auth(key),
       body: JSON.stringify({ model, prompt: input.prompt, n: 1, ...(input.size ? { size: input.size } : {}) }),
@@ -25,7 +25,7 @@ export const cometapi: ProviderAdapter = {
   },
 
   async createTask(key, model, input) {
-    const { status, body } = await fetchJson(`${BASE}${VIDEO_PATH()}`, {
+    const { status, body } = await fetchJson(`${BASE_URL()}${VIDEO_PATH()}`, {
       method: "POST",
       headers: auth(key),
       body: JSON.stringify({ model, ...input }),
@@ -36,7 +36,7 @@ export const cometapi: ProviderAdapter = {
   },
 
   async checkTask(key, id) {
-    const { status, body } = await fetchJson(`${BASE}${VIDEO_PATH()}/${encodeURIComponent(id)}`, { headers: auth(key) });
+    const { status, body } = await fetchJson(`${BASE_URL()}${VIDEO_PATH()}/${encodeURIComponent(id)}`, { headers: auth(key) });
     if (status >= 300) throw errOf(status, body);
     const d = body?.data ?? body;
     const s = String(d?.status ?? d?.state ?? "").toLowerCase();
