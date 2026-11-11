@@ -14,7 +14,7 @@ async function rpc(method: string, params: any = {}, token?: string) {
   assert.equal(init.final.result.serverInfo.name, "kids-stories-media-mcp");
   const list = await rpc("tools/list");
   const names = list.final.result.tools.map((t: any) => t.name).sort();
-  assert.deepEqual(names, ["generate_image", "generate_video", "get_task", "list_media", "merge_videos"]);
+  assert.deepEqual(names, ["create_story", "generate_image", "generate_video", "get_story", "get_task", "list_media", "list_story_templates", "merge_videos"]);
   const merge = list.final.result.tools.find((t: any) => t.name === "merge_videos").inputSchema.properties;
   assert.equal(merge.urls.maxItems, 10);
   assert.ok(!("resolution" in merge) && !("fps" in merge));

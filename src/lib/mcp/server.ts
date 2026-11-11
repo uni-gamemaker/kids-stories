@@ -4,6 +4,7 @@ import { runGeneration, refreshTask } from "../generation";
 import { runMerge, resolveTaskUrls, validateUrls } from "../merger";
 import { listRecentTasks } from "../turso";
 import { formatTask } from "../format";
+import { registerStoryTools } from "./story-tools";
 
 export const SERVER_INFO = { name: "kids-stories-media-mcp", version: "1.0.0" };
 
@@ -115,5 +116,6 @@ export function createMcpServer(): McpServer {
     return out({ text: `Latest ${rows.length} item(s), newest first:\n${lines.join("\n")}` });
   });
 
+  registerStoryTools(server);
   return server;
 }
