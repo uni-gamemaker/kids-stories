@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Merger</title>
+<style>
+  :root { --bg:#0f1226; --card:#181c3a; --ink:#eef0ff; --mut:#9aa3d6; --acc:#7c5cff; --ok:#2ecc9a; --bad:#ff6b81; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: radial-gradient(1200px 600px at 20% -10%, #2a2f6e 0%, var(--bg) 60%); color: var(--ink); min-height:100vh; }
+  main { max-width: 820px; margin: 0 auto; padding: 32px 18px 60px; }
+  h1 { margin: 0 0 6px; font-size: 30px; } .sub { color: var(--mut); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid #2b3070; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  input[type=url] { flex:1; min-width:220px; padding:11px 12px; border-radius:10px; border:1px solid #384090; background:#10132b; color:var(--ink); }
+  button { cursor:pointer; border:0; border-radius:10px; padding:11px 16px; background:var(--acc); color:#fff; font-weight:600; }
+  button.ghost { background:#262b5c; } button:disabled { opacity:.5; cursor:not-allowed; }
+  .drop { margin-top:12px; border:2px dashed #4a52b0; border-radius:12px; padding:22px; text-align:center; color:var(--mut); }
+  .drop.over { background:#20255a; border-color: var(--acc); }
+  ol { list-style:none; padding:0; margin:14px 0 0; }
+  li.clip { display:flex; align-items:center; gap:10px; padding:10px; border-radius:10px; background:#10132b; margin-bottom:8px; }
+  li.clip .n { width:24px; color:var(--mut); } li.clip .t { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  li.clip button { padding:6px 10px; background:#262b5c; }
+  .bar { height:10px; background:#10132b; border-radius:8px; overflow:hidden; margin-top:12px; } .bar > div { height:100%; width:0; background:linear-gradient(90deg,var(--acc),var(--ok)); transition:width .4s; }
+  .msg { margin-top:10px; color:var(--mut); } .err { color: var(--bad); } .warn { color:#ffd166; }
+  video { width:100%; border-radius:12px; margin-top:12px; background:#000; }
+  pre { background:#10132b; padding:12px; border-radius:10px; overflow:auto; font-size:13px; } code { color:#c8d0ff; }
+  a { color:#a99bff; } summary { cursor:pointer; font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Video Merger</h1>
+  <p class="sub">Join 2–<span id="max">10</span> clips into one MP4. Add direct links or upload files.</p>
+
+  <div class="card">
+    <div class="row"><input id="url" type="url" placeholder="https://example.com/clip.mp4"><button id="addUrl">Add link</button></div>
+    <div class="drop" id="drop">Drop video files here or <label style="text-decoration:underline;cursor:pointer">browse<input id="file" type="file" accept="video/*" multiple hidden></label></div>
+    <ol id="list"></ol>
+    <div class="row" style="margin-top:14px"><button id="go" disabled>Merge clips</button><button class="ghost" id="clear">Clear</button></div>
+    <div class="bar" id="barw" hidden><div id="bar"></div></div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card" id="result" hidden>
+    <strong>Your merged video</strong>
+    <video id="player" controls playsinline></video>
+    <div class="row" style="margin-top:12px"><a id="dl"><button>Download MP4</button></a><button class="ghost" id="copy">Copy link</button></div>
+    <p class="warn">The merged file is deleted automatically after 24 hours. Download it promptly.</p>
+  </div>
+
+  <div class="card">
+    <details><summary>Use it as an API</summary>
+<pre><code># 1) create a job from direct links
+curl -X POST $BASE/api/jobs -H 'Content-Type: application/json' \
+  -d '{"videos":["https://.../1.mp4","https://.../2.mp4"]}'      # -> {"jobId": "..."}
+# 2) run it (takes seconds to a few minutes)
+curl -X POST $BASE/api/jobs/JOB_ID/process
+# 3) status / result
+curl $BASE/api/jobs/JOB_ID      # -> {"status":"done","videoUrl":"..."}
+curl -X DELETE $BASE/api/jobs/JOB_ID</code></pre>
+    </details>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let cfg = { maxSources: 10, minSources: 2, uploadChunkBytes: 4194304 };
+let clips = []; // {kind:'url',url} | {kind:'file',file}
+const msg = (t, cls = "") => { $("msg").textContent = t; $("msg").className = "msg " + cls; };
+fetch("/api/config").then((r) => r.json()).then((c) => { cfg = c; $("max").textContent = c.maxSources; }).catch(() => {});
+
+function render() {
+  $("list").innerHTML = "";
+  clips.forEach((c, i) => {
+    const li = document.createElement("li"); li.className = "clip";
+    li.innerHTML = `<span class="n">${i + 1}</span><span class="t"></span><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="rm">✕</button>`;
+    li.querySelector(".t").textContent = c.kind === "url" ? c.url : `${c.file.name} (${(c.file.size / 1048576).toFixed(1)} MB)`;
+    li.onclick = (e) => { const a = e.target.dataset.a; if (!a) return;
+      if (a === "rm") clips.splice(i, 1);
+      if (a === "up" && i > 0) [clips[i - 1], clips[i]] = [clips[i], clips[i - 1]];
+      if (a === "down" && i < clips.length - 1) [clips[i + 1], clips[i]] = [clips[i], clips[i + 1]];
+      render(); };
+    $("list").appendChild(li);
+  });
+  $("go").disabled = clips.length < cfg.minSources;
+}
+function add(c) { if (clips.length >= cfg.maxSources) return msg(`Maximum ${cfg.maxSources} clips.`, "err"); clips.push(c); msg(""); render(); }
+$("addUrl").onclick = () => { const u = $("url").value.trim(); if (!/^https?:\/\//i.test(u)) return msg("Enter a direct http(s) link.", "err"); add({ kind: "url", url: u }); $("url").value = ""; };
+$("file").onchange = (e) => { [...e.target.files].forEach((f) => add({ kind: "file", file: f })); e.target.value = ""; };
+$("drop").ondragover = (e) => { e.preventDefault(); $("drop").classList.add("over"); };
+$("drop").ondragleave = () => $("drop").classList.remove("over");
+$("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); [...e.dataTransfer.files].filter((f) => f.type.startsWith("video/")).forEach((f) => add({ kind: "file", file: f })); };
+$("clear").onclick = () => { clips = []; render(); msg(""); $("result").hidden = true; };
+
+async function j(res) { const b = await res.json().catch(() => ({})); if (!res.ok) throw new Error(b.error || `HTTP ${res.status}`); return b; }
+$("go").onclick = async () => {
+  $("go").disabled = true; $("result").hidden = true; $("barw").hidden = false; $("bar").style.width = "2%";
+  try {
+    msg("Creating job…");
+    const sources = clips.map((c) => c.kind === "url" ? { kind: "url", url: c.url } : { kind: "file", name: c.file.name, size: c.file.size, mime: c.file.type });
+    const job = await j(await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sources }) }));
+    for (const u of job.uploads || []) {
+      const f = clips[u.seq].file;
+      for (let k = 0; k < u.chunks; k++) {
+        msg(`Uploading ${f.name} (${k + 1}/${u.chunks})…`);
+        await j(await fetch(`${u.uploadUrl}&chunk=${k}`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: f.slice(k * job.chunkBytes, (k + 1) * job.chunkBytes) }));
+      }
+    }
+    msg("Merging…");
+    const poll = setInterval(async () => { try { const s = await j(await fetch(`/api/jobs/${job.jobId}`)); $("bar").style.width = Math.max(2, s.progress) + "%"; } catch {} }, 2000);
+    let r; try { r = await fetch(`/api/jobs/${job.jobId}/process`, { method: "POST" }); } catch { r = null; }
+    // 202 or a dropped connection: keep polling until done/failed.
+    let s = r && r.status === 200 ? await r.json() : null;
+    while (!s || s.status === "processing" || s.status === "queued") { await new Promise((ok) => setTimeout(ok, 2500)); s = await j(await fetch(`/api/jobs/${job.jobId}`)); }
+    clearInterval(poll);
+    if (s.status !== "done") throw new Error(s.error || "Merging failed.");
+    $("bar").style.width = "100%"; msg("Done!");
+    $("player").src = s.videoUrl; $("dl").href = s.downloadUrl; $("copy").onclick = () => navigator.clipboard.writeText(s.videoUrl).then(() => msg("Link copied."));
+    $("result").hidden = false;
+  } catch (e) { msg(e.message, "err"); } finally { $("go").disabled = clips.length < cfg.minSources; }
+};
+render();
+</script>
+</body>
+</html>
