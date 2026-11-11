@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/jobs/*/process.js": { "maxDuration": 300, "memory": 1769, "includeFiles": "node_modules/{ffmpeg-static,ffprobe-static}/**" },
+    "api/jobs/*/video.js": { "maxDuration": 60 },
+    "api/upload.js": { "maxDuration": 60 }
+  },
+  "crons": [{ "path": "/api/cron", "schedule": "0 3 * * *" }]
+}

@@ -10,3 +10,6 @@ next-env.d.ts
 merger/.env
 merger/node_modules
 .vercel
+
+*.db
+*.db-journal

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx scripts/test-turso.ts && tsx scripts/test-keys.ts && tsx scripts/test-failover.ts && tsx scripts/test-story.ts && tsx scripts/test-pdf.ts",
+    "test:mcp": "bash scripts/run-mcp-test.sh",
+    "test:integration": "tsx scripts/test-integration.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
