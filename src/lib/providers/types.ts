@@ -5,6 +5,7 @@ export interface CheckResult {
   urls?: string[];
   error?: string;
   progress?: number;
+  note?: string; // raw provider state, shown on the dashboard for diagnosis
 }
 
 export interface ProviderAdapter {

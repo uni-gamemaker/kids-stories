@@ -34,7 +34,7 @@ export const kie: ProviderAdapter = {
       return urls.length ? { status: "completed", urls, progress: 100 } : { status: "failed", error: "Finished without a result URL." };
     }
     if (state === "fail") return { status: "failed", error: String(d.failMsg || "Generation failed.") };
-    const progress = state === "generating" ? 50 : state === "queuing" ? 15 : 5;
-    return { status: "processing", progress };
+    const progress = state === "generating" ? 50 : state === "queuing" ? 15 : state === "waiting" ? 8 : 5;
+    return { status: "processing", progress, note: `kie state: ${state || "(empty)"}` };
   },
 };

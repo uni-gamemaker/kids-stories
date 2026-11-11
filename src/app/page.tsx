@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type Key = { id: string; provider: string; label: string; api_key_masked: string; status: string; usage_count: number; success_count: number; fail_count: number; last_used_at: string | null; last_error: string | null };
-type Task = { id: string; type: string; status: string; progress: number; model: string; prompt: string; urls: string[]; error: string | null; attempts: number; created_at: string };
+type Task = { id: string; type: string; status: string; progress: number; model: string; prompt: string; urls: string[]; error: string | null; note?: string | null; provider_task_id?: string | null; attempts: number; created_at: string };
 type Story = { id: string; title: string; status: string; done?: number; total?: number; pdf_url?: string | null };
 
 const badge: Record<string, string> = { active: "bg-emerald-100 text-emerald-800", exhausted: "bg-amber-100 text-amber-800", disabled: "bg-slate-200 text-slate-700", completed: "bg-emerald-100 text-emerald-800", failed: "bg-rose-100 text-rose-800", processing: "bg-sky-100 text-sky-800", pending: "bg-sky-100 text-sky-800", generating: "bg-sky-100 text-sky-800", images_ready: "bg-violet-100 text-violet-800", ready: "bg-emerald-100 text-emerald-800" };
@@ -107,6 +107,7 @@ export default function Dashboard() {
               <div className="flex flex-wrap items-center gap-2"><span className="rounded bg-slate-100 px-1.5 text-xs">{t.type}</span><Pill s={t.status} />{t.status === "processing" && <span className="text-xs">{t.progress}%</span>}<span className="truncate text-slate-600">{t.prompt}</span><span className="ml-auto text-xs text-slate-400">{t.created_at}</span></div>
               {t.urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer" className="block truncate text-xs text-indigo-700 underline">{u}</a>)}
               {t.error && <p className="text-xs text-rose-700">{t.error}</p>}
+              {t.note && <p className="text-xs text-amber-700">{t.note}{t.provider_task_id ? ` · provider task ${t.provider_task_id.slice(0, 12)}…` : ""}</p>}
             </li>
           ))}
           {!tasks.length && <li className="py-3 text-slate-500">No tasks yet.</li>}

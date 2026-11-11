@@ -18,6 +18,8 @@ export function startMocks(kiePort: number, mergerPort: number) {
       if (req.url!.startsWith("/api/v1/jobs/recordInfo")) {
         const id = new URL(req.url!, "http://x").searchParams.get("taskId")!;
         polls[id] = (polls[id] ?? 0) + 1;
+        if (id.startsWith("stuck")) return send(200, { code: 200, data: { state: "waiting" } });
+        if (id.startsWith("err-key")) return send(500, { code: 500, msg: "server busy" });
         if (id.startsWith("midfail")) return send(200, { code: 200, data: { state: "fail", failMsg: "insufficient balance" } });
         if (polls[id] < 2) return send(200, { code: 200, data: { state: "generating" } });
         return send(200, { code: 200, data: { state: "success", resultJson: JSON.stringify({ resultUrls: [`https://cdn.example/img-${id.length}-${polls[id]}.png`] }) } });

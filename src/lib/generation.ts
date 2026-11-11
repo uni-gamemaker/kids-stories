@@ -117,7 +117,7 @@ export async function refreshTask(id: string): Promise<TaskRow | null> {
         await updateTask(id, { status: "failed", error_message: r.error ?? "Generation failed." });
       }
     } else {
-      await updateTask(id, { progress: Math.max(t.progress, r.progress ?? t.progress) });
+      await updateTask(id, { progress: Math.max(t.progress, r.progress ?? t.progress), error_message: r.note ?? null });
     }
   } catch (e) {
     const { cls, message } = classifyError(e);
@@ -125,7 +125,7 @@ export async function refreshTask(id: string): Promise<TaskRow | null> {
       await setKeyStatus(key.id, cls, message);
       await failover(t, def, key.id);
     }
-    // temporary errors: keep the task as is and try again on the next poll
+    else await updateTask(id, { error_message: `Last check error: ${message}`.slice(0, 240) }); // temporary: keep polling, but make it visible
   }
   return getTask(id);
 }
