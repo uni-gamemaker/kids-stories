@@ -10,7 +10,6 @@ function bin(envVar, getter, name) {
   try { if (!fs.existsSync(dst)) { fs.copyFileSync(src, dst); fs.chmodSync(dst, 0o755); } return dst; } catch { return src; }
 }
 const FFMPEG = () => bin("FFMPEG_PATH", () => require("ffmpeg-static"), "ffmpeg-bin");
-const FFPROBE = () => bin("FFPROBE_PATH", () => require("ffprobe-static").path, "ffprobe-bin");
 
 function run(cmd, args, onLine) {
   return new Promise((resolve, reject) => {
@@ -23,16 +22,24 @@ function run(cmd, args, onLine) {
   });
 }
 
+// Probe with ffmpeg itself (no separate ffprobe binary: keeps the Vercel bundle far below its size limit).
+function probeText(file) {
+  return new Promise((resolve, reject) => {
+    const p = spawn(FFMPEG(), ["-hide_banner", "-i", file]);
+    let err = "";
+    p.stderr.on("data", (d) => { err += d; });
+    p.on("error", reject);
+    p.on("close", () => resolve(err)); // ffmpeg exits non-zero when no output is given: expected
+  });
+}
 async function probe(file) {
-  let j;
-  try { j = JSON.parse(await run(FFPROBE(), ["-v", "error", "-print_format", "json", "-show_streams", "-show_format", file])); }
-  catch { throw new Error("A file is not a valid video."); }
-  const v = (j.streams || []).find((s) => s.codec_type === "video");
-  if (!v) throw new Error("A file is not a valid video.");
-  const a = (j.streams || []).find((s) => s.codec_type === "audio");
-  const duration = Number(j.format?.duration || v.duration || 0);
+  const t = await probeText(file);
+  const d = t.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  const v = t.match(/Stream #\d+:\d+[^\n]*?: Video:[^\n]*?[\s,](\d{2,5})x(\d{2,5})(?=[\s,\[]|$)/);
+  if (!d || !v) throw new Error("A file is not a valid video.");
+  const duration = Number(d[1]) * 3600 + Number(d[2]) * 60 + Number(d[3]);
   if (!(duration > 0)) throw new Error("A file is not a valid video.");
-  return { width: v.width, height: v.height, duration, hasAudio: !!a };
+  return { width: Number(v[1]), height: Number(v[2]), duration, hasAudio: /Stream #\d+:\d+[^\n]*?: Audio:/.test(t) };
 }
 
 const even = (n) => Math.max(2, Math.floor(n / 2) * 2);
@@ -65,4 +72,4 @@ async function merge(files, infos, outPath, onProgress) {
   });
   return { width: w, height: h, duration: total };
 }
-module.exports = { probe, merge, FFMPEG, FFPROBE };
+module.exports = { probe, merge, FFMPEG };

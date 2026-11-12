@@ -3,6 +3,8 @@
 
 # Kids Stories Studio
 
+> **Main use: the daily short-video pipeline** — your own stories → 4 clips of 15 s → one ~1 minute video → auto-posted. See [`docs/VIDEO-PIPELINE.md`](docs/VIDEO-PIPELINE.md). The illustrated-PDF story engine below is optional/legacy.
+
 Personalized, illustrated children's stories (PDF), generated through an **MCP media server**
 (kie.ai + CometAPI, automatic sequential multi-key failover) plus a **video merger** (`merger/`).
 
@@ -23,11 +25,11 @@ Personalized, illustrated children's stories (PDF), generated through an **MCP m
 
 ## MCP tools
 `generate_image`, `generate_video`, `merge_videos`, `get_task`, `list_media`,
-`list_story_templates`, `create_story`, `get_story`.
+`list_story_templates`, `create_story`, `get_story` (PDF engine), and `save_episode`, `list_episodes`, `get_episode` (video queue/memory).
 
 ## Setup
 1. `cp .env.example .env` and fill in `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `MERGER_API_BASE`
-   (and set `MCP_ACCESS_TOKEN` + `ADMIN_TOKEN` in production). **Never commit `.env`.**
+   (and set `ADMIN_TOKEN` plus either `MCP_URL_SECRET` (for ChatGPT/Claude connectors) or `MCP_ACCESS_TOKEN` in production). **Never commit `.env`.**
 2. `npm install && npm run dev`, open the dashboard, add your kie.ai / CometAPI keys (tried in the order added).
 3. Deploy `merger/` as its own Vercel project (root directory `merger/`, env: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`).
 4. Point your MCP client at `https://<app>/mcp`.

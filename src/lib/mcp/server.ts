@@ -5,6 +5,7 @@ import { runMerge, resolveTaskUrls, validateUrls } from "../merger";
 import { listRecentTasks } from "../turso";
 import { formatTask } from "../format";
 import { registerStoryTools } from "./story-tools";
+import { registerEpisodeTools } from "./episode-tools";
 
 export const SERVER_INFO = { name: "kids-stories-media-mcp", version: "1.0.0" };
 
@@ -117,5 +118,6 @@ export function createMcpServer(): McpServer {
   });
 
   registerStoryTools(server);
+  registerEpisodeTools(server);
   return server;
 }

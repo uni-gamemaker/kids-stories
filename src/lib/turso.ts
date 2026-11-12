@@ -71,6 +71,21 @@ const SCHEMA = [
     image_url TEXT,
     PRIMARY KEY (story_id, page_no)
   )`,
+  // Episodes: the memory + queue for the "one short story video a day" pipeline.
+  `CREATE TABLE IF NOT EXISTS episodes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    summary TEXT DEFAULT '',
+    story_text TEXT DEFAULT '',          -- the author's own story / script
+    scenes_json TEXT DEFAULT '[]',       -- [{prompt, dialogue?, image_task_id?, video_task_id?}]
+    caption TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'planned', -- planned | generating | merged | scheduled | published | failed
+    merge_task_id TEXT,
+    video_url TEXT,
+    notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_keys_order ON api_keys(provider, created_at, id)`,
 ];

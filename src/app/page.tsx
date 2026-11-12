@@ -52,7 +52,7 @@ export default function Dashboard() {
 
       <Card title="Connection">
         <p className="text-sm">MCP endpoint: <code className="rounded bg-slate-100 px-2 py-0.5">{mcpUrl}</code></p>
-        <p className="mt-1 text-sm text-slate-600">Database: {health?.database ?? "…"} · Merger: {health?.merger?.healthy ? "reachable" : "not reachable / not configured"}{health?.authRequired ? " · MCP token required" : " · MCP is open (set MCP_ACCESS_TOKEN)"}</p>
+        <p className="mt-1 text-sm text-slate-600">Database: {health?.database ?? "…"} · Merger: {health?.merger?.healthy ? "reachable" : "not reachable / not configured"}{health?.mcpAuth === "secret-url" ? " · MCP protected by secret URL (/mcp/<secret>)" : health?.mcpAuth === "bearer" ? " · MCP bearer token required" : " · ⚠ MCP is OPEN: set MCP_URL_SECRET or MCP_ACCESS_TOKEN"}</p>
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">

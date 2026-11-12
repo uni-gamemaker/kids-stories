@@ -53,10 +53,10 @@ const post = (p, body, raw) => fetch(B + p, { method: "POST", headers: raw ? { "
   assert.equal(r.status, 206); assert.equal(r.headers.get("content-range"), `bytes 0-99/${st.size}`);
   assert.equal((await fetch(st.videoUrl, { headers: { Range: `bytes=${st.size + 5}-` } })).status, 416);
   const outFile = path.join(dir, "out.mp4"); fs.writeFileSync(outFile, full);
-  const info = JSON.parse(execFileSync(ff.FFPROBE(), ["-v", "error", "-print_format", "json", "-show_streams", "-show_format", outFile]));
-  const v = info.streams.find((s) => s.codec_type === "video"), a = info.streams.find((s) => s.codec_type === "audio");
-  assert.equal(`${v.width}x${v.height}`, "640x360"); assert.ok(a, "audio kept even though clip b had none");
-  assert.ok(Math.abs(Number(info.format.duration) - 5) < 0.4, "duration " + info.format.duration);
+  const info = await ff.probe(outFile);
+  assert.equal(`${info.width}x${info.height}`, "640x360"); assert.ok(info.hasAudio, "audio kept even though clip b had none");
+  assert.ok(Math.abs(info.duration - 5) < 0.4, "duration " + info.duration);
+  const v = { width: info.width, height: info.height }; info.format = { duration: info.duration };
   console.log(`URL merge OK: ${v.width}x${v.height}, ${Number(info.format.duration).toFixed(1)}s, audio present, ${(st.size / 1024).toFixed(0)} KB`);
 
   // mixed job: link + uploaded file; processing early must be refused

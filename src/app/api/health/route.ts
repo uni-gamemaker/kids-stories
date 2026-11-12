@@ -1,6 +1,7 @@
 import { dbHealthy } from "@/lib/turso";
 import { mergerHealthy } from "@/lib/merger";
 import { getModels } from "@/lib/models";
+import { mcpAuthMode } from "@/lib/mcp/handler";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export async function GET() {
     mcpEndpoint: "/mcp",
     models: getModels().map((m) => ({ canonical: m.canonical, type: m.type, providers: m.providers })),
     merger: { base: process.env.MERGER_API_BASE || null, healthy: mergerOk },
-    authRequired: !!process.env.MCP_ACCESS_TOKEN,
+    mcpAuth: mcpAuthMode(), // "secret-url" | "bearer" | "open"
+    authRequired: mcpAuthMode() !== "open",
   });
 }
