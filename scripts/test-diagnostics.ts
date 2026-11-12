@@ -25,5 +25,15 @@ import { runGeneration, refreshTask } from "../src/lib/generation";
   assert.equal(t.status, "processing");
   assert.match(t.error_message ?? "", /Last check error: .*server busy/);
   console.log("check error is visible:", t.error_message);
+  // a job the provider never finishes is failed after the timeout instead of hanging forever
+  await db().execute("DELETE FROM api_keys");
+  await addKey("kie", "stuck-key-0000", "stuck2");
+  process.env.IMAGE_TIMEOUT_MIN = "-1";
+  r = await runGeneration({ model: "gpt-image-2-6/flare-text-to-image", input: { prompt: "z" }, waitSeconds: 0 });
+  if (r.kind !== "task") return;
+  t = (await refreshTask(r.task.id))!;
+  assert.equal(t.status, "failed");
+  assert.match(t.error_message ?? "", /Timed out/);
+  console.log("timeout OK:", t.error_message);
   mocks.close(); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

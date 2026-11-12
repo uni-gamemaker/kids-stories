@@ -117,7 +117,13 @@ export async function refreshTask(id: string): Promise<TaskRow | null> {
         await updateTask(id, { status: "failed", error_message: r.error ?? "Generation failed." });
       }
     } else {
-      await updateTask(id, { progress: Math.max(t.progress, r.progress ?? t.progress), error_message: r.note ?? null });
+      // Give up on jobs the provider never finishes, so they cannot block the pipeline forever.
+      const limitMin = Number(process.env[def.type === "video" ? "VIDEO_TIMEOUT_MIN" : "IMAGE_TIMEOUT_MIN"] ?? (def.type === "video" ? 30 : 20));
+      if (Date.now() - dbTime(t.created_at) > limitMin * 60_000) {
+        await updateTask(id, { status: "failed", error_message: `Timed out after ${limitMin} minutes at the provider (${r.note ?? "no state"}).` });
+      } else {
+        await updateTask(id, { progress: Math.max(t.progress, r.progress ?? t.progress), error_message: r.note ?? null });
+      }
     }
   } catch (e) {
     const { cls, message } = classifyError(e);

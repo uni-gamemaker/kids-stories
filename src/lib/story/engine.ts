@@ -9,6 +9,8 @@ import { HERO_LOOK, DENTIST_LOOK, STYLE } from "./character";
 const IMAGE_MODEL = "gpt-image-2-6/flare-text-to-image";
 const MAX_IN_FLIGHT = 4;      // do not hammer the provider with all pages at once
 const MAX_ATTEMPTS_PER_PAGE = 3;
+// Global cap across ALL stories: providers queue or rate-limit bursts, and every job costs credits.
+const maxConcurrent = () => Number(process.env.MAX_CONCURRENT_IMAGES || 2);
 
 export interface StoryPage { page_no: number; text: string; image_prompt: string; image_task_id: string | null; image_url: string | null }
 export interface StoryView {
@@ -76,8 +78,10 @@ export async function advanceStory(id: string): Promise<StoryView | null> {
   s = (await loadStory(id))!;
 
   let inFlight = s.pages.filter((p) => !p.image_url && p.image_task_id).length;
+  const g = await db().execute("SELECT COUNT(*) AS n FROM tasks WHERE type='image' AND status IN ('pending','processing')");
+  let globalRunning = Number((g.rows[0] as any).n);
   for (const pg of s.pages) {
-    if (inFlight >= MAX_IN_FLIGHT) break;
+    if (inFlight >= MAX_IN_FLIGHT || globalRunning >= maxConcurrent()) break;
     if (pg.image_url || pg.image_task_id) continue;
     if ((await attempts(id, pg.page_no)) >= MAX_ATTEMPTS_PER_PAGE) {
       await db().execute({ sql: "UPDATE stories SET status='failed', updated_at=datetime('now') WHERE id = ?", args: [id] });
@@ -88,7 +92,7 @@ export async function advanceStory(id: string): Promise<StoryView | null> {
     await db().execute({ sql: "UPDATE story_pages SET image_task_id = ? WHERE story_id = ? AND page_no = ?", args: [r.task.id, id, pg.page_no] });
     if (r.task.status === "completed" && r.task.result_urls[0]) {
       await db().execute({ sql: "UPDATE story_pages SET image_url = ? WHERE story_id = ? AND page_no = ?", args: [r.task.result_urls[0], id, pg.page_no] });
-    } else inFlight++;
+    } else { inFlight++; globalRunning++; }
   }
   s = (await loadStory(id))!;
   if (s.done === s.total && s.status === "generating") {
