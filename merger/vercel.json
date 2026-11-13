@@ -1,4 +1,6 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "functions": {
     "api/jobs/*/process.js": { "maxDuration": 300, "memory": 1769, "includeFiles": "node_modules/ffmpeg-static/ffmpeg" },
     "api/jobs/*/video.js": { "maxDuration": 60 },
