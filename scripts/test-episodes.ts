@@ -18,13 +18,17 @@ const toolNames = async (res: Response) => { const t = await res.text(); const l
   assert.deepEqual((await listEpisodes({ status: "planned" })).map((e) => e.title), ["Story B"]);   // A left the queue
   assert.equal((await getEpisode(a.episode.id))!.scenes.length, 1);
   assert.equal((await saveEpisode({ episode_id: "nope", status: "failed" })).ok, false);
-  console.log("episodes OK");
+  const { getSetting, setSetting } = await import("../src/lib/settings");
+  assert.equal(await getSetting("series_brief"), null);
+  await setSetting("series_brief", "v1"); await setSetting("series_brief", "Theme: kind stories for kids, hero Adam");
+  assert.equal(await getSetting("series_brief"), "Theme: kind stories for kids, hero Adam");   // upsert replaces
+  console.log("episodes + series brief OK");
 
   // MCP access modes
   delete process.env.MCP_URL_SECRET; delete process.env.MCP_ACCESS_TOKEN;
   assert.equal(mcpAuthMode(), "open");
   const names = await toolNames(await serveMcp(rpc("tools/list")));
-  for (const n of ["save_episode", "list_episodes", "get_episode", "generate_image", "generate_video", "merge_videos"]) assert.ok(names.includes(n), n);
+  for (const n of ["save_episode", "list_episodes", "get_episode", "set_series_brief", "get_series_brief", "generate_image", "generate_video", "merge_videos"]) assert.ok(names.includes(n), n);
   console.log("tools:", names.length);
 
   process.env.MCP_ACCESS_TOKEN = "tok";

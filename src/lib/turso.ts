@@ -86,6 +86,11 @@ const SCHEMA = [
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_keys_order ON api_keys(provider, created_at, id)`,
 ];

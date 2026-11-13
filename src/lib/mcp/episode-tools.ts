@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { saveEpisode, listEpisodes, getEpisode, EPISODE_STATUSES } from "../episodes";
+import { getSetting, setSetting } from "../settings";
 
 const out = (text: string, isError = false) => ({ content: [{ type: "text" as const, text }], ...(isError ? { isError: true } : {}) });
 const line = (e: { id: string; title: string; status: string; summary: string; video_url: string | null; created_at: string }) =>
@@ -32,6 +33,19 @@ export function registerEpisodeTools(server: McpServer) {
   }, async ({ status, limit }) => {
     const eps = await listEpisodes({ status, limit });
     return out(eps.length ? `${eps.length} episode(s):\n${eps.map(line).join("\n")}` : status === "planned" ? "The queue is empty: no planned stories." : "No episodes yet.");
+  });
+
+  server.registerTool("set_series_brief", {
+    description: "Save the series brief: the persistent 'bible' for every future episode (theme, hero character sheet, art style, tone, language, target platforms, posting times, aspect ratio, rules). Scheduled runs have no chat memory, so this is where the theme lives. Replaces the previous brief.",
+    inputSchema: { brief: z.string().min(20).max(8000) },
+  }, async ({ brief }) => { await setSetting("series_brief", brief); return out("✅ Series brief saved."); });
+
+  server.registerTool("get_series_brief", {
+    description: "Read the saved series brief (theme, hero, style, platforms, posting rules). Call this FIRST in every daily run and follow it.",
+    inputSchema: {},
+  }, async () => {
+    const b = await getSetting("series_brief");
+    return out(b ?? "No series brief saved yet. Ask the owner for the theme, or call set_series_brief.");
   });
 
   server.registerTool("get_episode", {
