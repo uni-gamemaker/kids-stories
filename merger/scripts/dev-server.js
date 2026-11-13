@@ -1,7 +1,8 @@
-// Local dev server that mirrors the Vercel routes: `node local-server.js` (needs TURSO_DATABASE_URL, e.g. file:./dev.db).
+// Local dev server that mirrors the Vercel routes: `node scripts/dev-server.js` (needs TURSO_DATABASE_URL, e.g. file:./dev.db).
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const ROOT = path.join(__dirname, "..");
 const routes = [
   [/^\/api\/config$/, "./api/config.js"],
   [/^\/api\/upload$/, "./api/upload.js"],
@@ -14,9 +15,9 @@ const routes = [
 const server = http.createServer((req, res) => {
   const p = new URL(req.url, "http://x").pathname;
   const hit = routes.find(([re]) => re.test(p));
-  if (hit) return require(hit[1])(req, res);
-  const file = path.join(__dirname, "public", p === "/" ? "index.html" : p);
-  if (file.startsWith(path.join(__dirname, "public")) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+  if (hit) return require(path.join(ROOT, hit[1]))(req, res);
+  const file = path.join(ROOT, "public", p === "/" ? "index.html" : p);
+  if (file.startsWith(path.join(ROOT, "public")) && fs.existsSync(file) && fs.statSync(file).isFile()) {
     res.writeHead(200, { "Content-Type": file.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream" });
     return fs.createReadStream(file).pipe(res);
   }

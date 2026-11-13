@@ -16,7 +16,7 @@ import { formatTask } from "../src/lib/format";
   process.env.TURSO_DATABASE_URL = "file:/tmp/kids-int.db";
   // merger child uses its own DB env
   const { spawn } = await import("node:child_process");
-  const srv = spawn("node", ["local-server.js"], { cwd: "merger", env: { ...process.env, TURSO_DATABASE_URL: "file:/tmp/merger-int.db", ALLOW_PRIVATE_URLS: "1", PORT: "4940" }, stdio: "inherit" });
+  const srv = spawn("node", ["scripts/dev-server.js"], { cwd: "merger", env: { ...process.env, TURSO_DATABASE_URL: "file:/tmp/merger-int.db", ALLOW_PRIVATE_URLS: "1", PORT: "4940" }, stdio: "inherit" });
   await new Promise((r) => setTimeout(r, 1500));
   const r = await runMerge({ urls: ["http://localhost:4941/1.mp4", "http://localhost:4941/2.mp4"], waitSeconds: 40 });
   assert.equal(r.kind, "task");

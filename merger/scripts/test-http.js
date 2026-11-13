@@ -17,7 +17,7 @@ gen("a.mp4", "640x360", true, 2); gen("b.mp4", "320x568", false, 2); gen("c.mp4"
 fs.writeFileSync(path.join(dir, "notvideo.mp4"), "this is not a video file");
 
 const files = http.createServer((q, s) => { const f = path.join(dir, q.url.slice(1)); fs.existsSync(f) ? (s.writeHead(200), fs.createReadStream(f).pipe(s)) : (s.writeHead(404), s.end()); }).listen(4931);
-const app = require("../local-server").listen(4930);
+const app = require("./dev-server").listen(4930);
 const B = "http://localhost:4930", F = "http://localhost:4931";
 const post = (p, body, raw) => fetch(B + p, { method: "POST", headers: raw ? { "Content-Type": "application/octet-stream" } : { "Content-Type": "application/json" }, body: raw ? body : JSON.stringify(body) });
 
