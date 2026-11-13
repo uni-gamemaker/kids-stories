@@ -1,4 +1,4 @@
-// Local dev server that mirrors the Vercel routes: `node server.js` (needs TURSO_DATABASE_URL, e.g. file:./dev.db).
+// Local dev server that mirrors the Vercel routes: `node local-server.js` (needs TURSO_DATABASE_URL, e.g. file:./dev.db).
 const http = require("http");
 const fs = require("fs");
 const path = require("path");

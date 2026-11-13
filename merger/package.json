@@ -4,7 +4,7 @@
   "private": true,
   "description": "Video merging site and public API (Vercel serverless, Turso storage, ffmpeg).",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "node local-server.js",
     "test": "node scripts/test-unit.js && node scripts/test-http.js"
   },
   "engines": {

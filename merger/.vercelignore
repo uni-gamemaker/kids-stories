@@ -1,0 +1,4 @@
+# Local-only helpers: Vercel must see only api/ (functions) and public/ (site).
+local-server.js
+scripts
+*.db
