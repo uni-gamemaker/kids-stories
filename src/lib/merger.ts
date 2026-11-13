@@ -9,16 +9,27 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Guards against running /process twice concurrently (runMerge vs get_task).
 const processInFlight = new Set<string>();
 
-export async function mergerHealthy(): Promise<boolean> {
-  if (!base()) return false;
+export async function mergerStatus(): Promise<{ healthy: boolean; detail: string }> {
+  if (!base()) return { healthy: false, detail: "MERGER_API_BASE is not set." };
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 4000);
-    const r = await fetch(`${base()}/api/config`, { signal: ctl.signal });
+    const t = setTimeout(() => ctl.abort(), 6000);
+    const r = await fetch(`${base()}/api/config`, { signal: ctl.signal, redirect: "manual" });
+    const text = await r.text();
     clearTimeout(t);
-    return r.ok;
-  } catch { return false; }
+    let cfg: any = null;
+    try { cfg = JSON.parse(text); } catch { /* not JSON */ }
+    if (r.ok && cfg && typeof cfg.maxSources === "number") return { healthy: true, detail: "ok" };
+    if (r.status === 401 || r.status === 403 || (r.status >= 300 && r.status < 400) || /authentication required|vercel\.com\/sso|log in to vercel/i.test(text))
+      return { healthy: false, detail: `HTTP ${r.status}: Vercel Deployment Protection is blocking the merger. Disable it for the merger project (Settings → Deployment Protection).` };
+    if (r.status === 404) return { healthy: false, detail: "HTTP 404: /api/config not found. Is the merger project's Root Directory set to 'merger', and is its latest deployment Ready?" };
+    if (r.ok) return { healthy: false, detail: "The address answers but is not the merger (wrong project or Root Directory?)." };
+    return { healthy: false, detail: `HTTP ${r.status}: ${text.replace(/\s+/g, " ").slice(0, 120)}` };
+  } catch (e) {
+    return { healthy: false, detail: `Could not connect: ${e instanceof Error ? e.message : "unknown error"}` };
+  }
 }
+export async function mergerHealthy(): Promise<boolean> { return (await mergerStatus()).healthy; }
 
 async function mfetch(path: string, init: RequestInit = {}, timeoutMs = 30_000): Promise<{ status: number; body: any }> {
   const ctl = new AbortController();
